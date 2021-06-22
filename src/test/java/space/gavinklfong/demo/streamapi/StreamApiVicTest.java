@@ -5,6 +5,7 @@ import net.bytebuddy.asm.Advice;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import space.gavinklfong.demo.streamapi.models.Customer;
 import space.gavinklfong.demo.streamapi.models.Order;
 import space.gavinklfong.demo.streamapi.models.Product;
 import space.gavinklfong.demo.streamapi.repos.CustomerRepo;
@@ -12,10 +13,8 @@ import space.gavinklfong.demo.streamapi.repos.OrderRepo;
 import space.gavinklfong.demo.streamapi.repos.ProductRepo;
 
 import java.time.LocalDate;
-import java.util.Comparator;
-import java.util.DoubleSummaryStatistics;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 @Slf4j
 @DataJpaTest
@@ -167,5 +166,118 @@ public class StreamApiVicTest {
                 .summaryStatistics();
 
         log.info(estadisticas.toString());
+    }
+
+    @Test
+    void ejercicio11() {
+        log.info("----- Obtener un mapa de ordenes con la id de la orden y el recuento de productor por orden  -----");
+        Map<Long, Integer> resultado= orderRepo.findAll()
+                .stream()
+                .collect(Collectors.toMap(
+                        orden->orden.getId(),
+                        orden->orden.getProducts().size()));
+        log.info(resultado.toString());
+    }
+
+    @Test
+    void ejercicio12() {
+        log.info("----- Obtener un mapa de ordenes agrupador por cliente -----");
+        log.info("----- Obtener todas las ordenes por cliente -----");
+        Map<Customer, List<Order>> resultado=orderRepo.findAll()
+                .stream()
+                .collect(
+                        //Collectors.groupingBy(Order::getCustomer));
+                        Collectors.groupingBy(orden->orden.getCustomer()));
+        log.info(resultado.toString());
+    }
+
+    @Test
+    void ejercicio13() {
+        log.info("----- Obtener un mapa de ordenes con la suma total de los productos -----");
+        Map<Order, Double> resultado=orderRepo.findAll()
+                .stream()
+                .collect(
+                        Collectors.toMap(
+                                Function.identity(),//Devuelve la misma instancia (x->x). Puede ahorrar algo de memoria
+                                orden->orden.getProducts()
+                                        .stream()
+                                        .mapToDouble(producto->producto.getPrice())
+                                        .sum()
+                        ));
+        log.info(resultado.toString());
+    }
+
+    @Test
+    void ejercicio13_v2() {
+        log.info("----- Obtener un mapa de ordenes con la suma total de los productos -----");
+        Map<Order,Double> resultado=orderRepo.findAll()
+                .stream()
+                .collect(Collectors.toMap(
+                        orden->orden,
+                        orden->orden.getProducts()
+                        .stream()
+                        .mapToDouble(producto->producto.getPrice())
+                        .sum()
+                ));
+        log.info(resultado.toString());
+    }
+
+    @Test
+    void ejercicio14() {
+        log.info("----- Obtener un mapa con la lista de producto agrupado por categoria -----");
+        Map<String, List<String>> resultado=productRepo.findAll()
+                .stream()
+                .collect(
+                        Collectors.groupingBy(
+                                //Product::getCategory,
+                                producto->producto.getCategory(),
+                                Collectors.mapping(producto -> producto.getName(),Collectors.toList()))
+                );
+        log.info(resultado.toString());
+    }
+
+    @Test
+    void ejercicio14_v1() {
+        log.info("----- Obtener un mapa con la lista del producto agrupado por categoria -----");
+        Map<String, List<Product>> resultado=productRepo.findAll()
+                .stream()
+                .collect(Collectors.groupingBy(
+                                //Product::getCategory));
+                        producto-> producto.getCategory()));
+        log.info(resultado.toString());
+    }
+
+    @Test
+    void ejercicio14_v2() {
+        log.info("----- Obtener un mapa con la lista del NOMBRE del producto agrupado por categoria -----");
+
+        Map<String, List<String>> resultado=productRepo.findAll()
+                .stream()
+                .collect(Collectors.groupingBy(
+                        producto-> producto.getCategory(),
+                        Collectors.mapping(producto->producto.getName(), Collectors.toList())//Obtener solo el nombre del producto
+                ));
+
+        log.info(resultado.toString());
+    }
+
+    @Test
+    void ejercicio15() {
+        log.info("----- Obtener el producto mas caro por categoria -----");
+        Map<String, Optional<Product>> resultado=productRepo.findAll()
+                .stream()
+                .collect(
+                        Collectors.groupingBy(Product::getCategory,
+                                Collectors.maxBy(Comparator.comparing(Product::getPrice))));
+        log.info(resultado.toString());
+    }
+
+    @Test
+    void ejercicio16() {
+        log.info("----- Obtener una lista de los nombres de productos -----");
+        List<String> resultado=productRepo.findAll()
+                .stream()
+                .collect(Collectors.mapping(producto->producto.getName(), Collectors.toList()));
+        log.info(resultado.toString());
     }
 }
